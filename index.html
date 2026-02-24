@@ -128,12 +128,17 @@
         
 				// 也可以順便計算你離那個格點中心的距離(公里)，確保資料合理
 				const distance = turf.distance(userPoint, nearestFeature, {units: 'kilometers'});
+				
+				// 將公里換算成公尺，並四捨五入到整數，畫面看起來比較乾淨
+                const distanceMeters = Math.round(distanceKm * 1000);
         
 				// 如果距離太遠(例如大於 1 公里)，代表你可能不在資料範圍內
 				if (distance > 1) {
 					document.getElementById("vs30-display").innerText = "所在位置無資料";
+					document.getElementById("distance-display").innerText = "";
 				} else {
 					document.getElementById("vs30-display").innerText = vs30 + " m/s";
+					document.getElementById("distance-display").innerText = "距格點中心約 " + distanceMeters + " 公尺";
 				}
 			}
 		}
