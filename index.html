@@ -53,12 +53,12 @@
                 .then(data => {
                     vs30Data = data;
                     // 將格點繪製到地圖上 (設定透明度以免遮擋地圖)
-                    map.data.addGeoJson(vs30Data);
-                    map.data.setStyle({
-                        fillColor: 'blue',
-                        fillOpacity: 0.1,
-                        strokeWeight: 1
-                    });
+                    // map.data.addGeoJson(vs30Data);
+                    // map.data.setStyle({
+                    //    fillColor: 'blue',
+                    //    fillOpacity: 0.1,
+                    //    strokeWeight: 1
+                    // });
                     
                     // 資料載入完成後，啟動定位
                     startTracking();
