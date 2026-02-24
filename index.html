@@ -135,10 +135,10 @@
 				// 如果距離太遠(例如大於 1 公里)，代表你可能不在資料範圍內
 				if (distance > 1) {
 					document.getElementById("vs30-display").innerText = "所在位置無資料";
-					document.getElementById("distance-display").innerText = "";
+					//document.getElementById("distance-display").innerText = "";
 				} else {
 					document.getElementById("vs30-display").innerText = vs30 + " m/s";
-					document.getElementById("distance-display").innerText = "距格點中心約 " + distanceMeters + " 公尺";
+					//document.getElementById("distance-display").innerText = "距格點中心約 " + distanceMeters + " 公尺";
 				}
 			}
 		}
