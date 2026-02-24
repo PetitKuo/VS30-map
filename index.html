@@ -56,7 +56,7 @@
             }).addTo(map);
 
             // 2. 載入 VS30 GeoJSON 資料
-            fetch('vs30_grid.geojson')
+            fetch('Z10.geojson')
                 .then(response => response.json())
                 .then(data => {
                     vs30Data = data; // 存入變數供 Turf.js 計算
