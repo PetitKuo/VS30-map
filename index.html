@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VS30 即時定位地圖</title>
+    <style>
+        body, html { height: 100%; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+        #map { height: 100%; width: 100%; }
+        #info-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            text-align: center;
+            z-index: 10;
+            width: 80%;
+            max-width: 300px;
+        }
+        .vs30-value { font-size: 24px; font-weight: bold; color: #d32f2f; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+</head>
+<body>
+
+    <div id="map"></div>
+    <div id="info-panel">
+        <div>目前的 VS30 數值：</div>
+        <div class="vs30-value" id="vs30-display">定位中...</div>
+    </div>
+
+    <script>
+        let map;
+        let userMarker;
+        let vs30Data; // 用來存放你的 GeoJSON 資料
+
+        // 1. 初始化地圖
+        function initMap() {
+            map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 14,
+                center: { lat: 24.9605, lng: 121.2239 }, // 預設中心點 (例如：中壢區)
+                mapTypeId: 'terrain'
+            });
+
+            // 2. 載入你的 VS30 GeoJSON 資料
+            // 假設你有一個名為 vs30_grid.geojson 的檔案與此 HTML 放在同一目錄
+            fetch('vs30_grid.geojson')
+                .then(response => response.json())
+                .then(data => {
+                    vs30Data = data;
+                    // 將格點繪製到地圖上 (設定透明度以免遮擋地圖)
+                    map.data.addGeoJson(vs30Data);
+                    map.data.setStyle({
+                        fillColor: 'blue',
+                        fillOpacity: 0.1,
+                        strokeWeight: 1
+                    });
+                    
+                    // 資料載入完成後，啟動定位
+                    startTracking();
+                })
+                .catch(error => console.error("無法載入資料:", error));
+        }
+
+        // 3. 啟動手機定位追蹤
+        function startTracking() {
+            if (navigator.geolocation) {
+                // watchPosition 會持續追蹤使用者位置
+                navigator.geolocation.watchPosition(
+                    (position) => {
+                        const pos = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude,
+                        };
+
+                        // 更新或建立使用者標記
+                        if (!userMarker) {
+                            userMarker = new google.maps.Marker({
+                                position: pos,
+                                map: map,
+                                icon: {
+                                    path: google.maps.SymbolPath.CIRCLE,
+                                    scale: 8,
+                                    fillColor: "#4285F4",
+                                    fillOpacity: 1,
+                                    strokeColor: "white",
+                                    strokeWeight: 2,
+                                },
+                                title: "你的位置"
+                            });
+                            map.setCenter(pos);
+                        } else {
+                            userMarker.setPosition(pos);
+                        }
+
+                        // 4. 計算目前位置所在格點的 VS30 值
+                        checkVs30Value(pos.lng, pos.lat);
+                    },
+                    (error) => {
+                        document.getElementById("vs30-display").innerText = "定位失敗";
+                        console.error("Geolocation error:", error);
+                    },
+                    { enableHighAccuracy: true } // 要求高精準度 (GPS)
+                );
+            } else {
+                alert("你的瀏覽器不支援地理位置功能。");
+            }
+        }
+
+        // 4. 使用 Turf.js 尋找距離最近的 VS30 資料點
+		function checkVs30Value(lng, lat) {
+			if (!vs30Data) return;
+
+			// 你的目前位置
+			const userPoint = turf.point([lng, lat]);
+    
+			// 使用 turf.nearestPoint 找出距離你最近的那個格點中心
+			// vs30Data 必須是剛才轉出來的 Point GeoJSON
+			const nearestFeature = turf.nearestPoint(userPoint, vs30Data);
+
+			if (nearestFeature) {
+				// 請將 'VS30' 換成你 CSV 裡面實際的 VS30 欄位名稱 (區分大小寫)
+				const vs30 = nearestFeature.properties.VS30; 
+        
+				// 也可以順便計算你離那個格點中心的距離(公里)，確保資料合理
+				const distance = turf.distance(userPoint, nearestFeature, {units: 'kilometers'});
+        
+				// 如果距離太遠(例如大於 1 公里)，代表你可能不在資料範圍內
+				if (distance > 1) {
+					document.getElementById("vs30-display").innerText = "所在位置無資料";
+				} else {
+					document.getElementById("vs30-display").innerText = vs30 + " m/s";
+				}
+			}
+		}
+    </script>
+
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD5J4_7SAzMEMunfON2qvSoXWjZB56Mcyw"></script>
+</body>
+</html>
