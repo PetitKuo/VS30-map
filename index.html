@@ -124,7 +124,7 @@
 
 			if (nearestFeature) {
 				// 請將 'VS30' 換成你 CSV 裡面實際的 VS30 欄位名稱 (區分大小寫)
-				const vs30 = nearestFeature.properties.VS30; 
+				const vs30 = nearestFeature.properties.Field4; 
         
 				// 也可以順便計算你離那個格點中心的距離(公里)，確保資料合理
 				const distance = turf.distance(userPoint, nearestFeature, {units: 'kilometers'});
