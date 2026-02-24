@@ -48,7 +48,7 @@
 
             // 2. 載入你的 VS30 GeoJSON 資料
             // 假設你有一個名為 vs30_grid.geojson 的檔案與此 HTML 放在同一目錄
-            fetch('vs30_grid.geojson')
+            fetch('Z10.geojson')
                 .then(response => response.json())
                 .then(data => {
                     vs30Data = data;
@@ -139,6 +139,6 @@
 		}
     </script>
 
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD5J4_7SAzMEMunfON2qvSoXWjZB56Mcyw"></script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD5J4_7SAzMEMunfON2qvSoXWjZB56Mcyw&callback=initMap"></script>
 </body>
 </html>
