@@ -115,7 +115,7 @@
             const nearestFeature = turf.nearestPoint(userPoint, vs30Data);
 
             if (nearestFeature) {
-                const vs30 = nearestFeature.properties.Field4; 
+                const vs30 = nearestFeature.properties.Field3; 
                 const distanceKm = turf.distance(userPoint, nearestFeature, {units: 'kilometers'});
                 const distanceMeters = Math.round(distanceKm * 1000);
                 
