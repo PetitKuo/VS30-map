@@ -1,4 +1,35 @@
-<script>
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VS30 & Z1.0 定位查詢</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+    <style>
+        body, html { height: 100%; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+        #map { height: 100%; width: 100%; }
+        #info-panel {
+            position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
+            background: white; padding: 15px 20px; border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-align: center;
+            z-index: 1000; width: 80%; max-width: 280px;
+        }
+        .val { font-size: 22px; font-weight: bold; color: #d32f2f; margin: 4px 0; }
+        .dist { font-size: 13px; color: #777; margin-top: 8px; border-top: 1px solid #eee; padding-top: 6px; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div id="info-panel">
+        <div style="font-size: 14px; color: #444;">目前位置數值</div>
+        <div id="vs30-display" class="val">讀取中...</div>
+        <div id="z10-display" class="val"></div>
+        <div id="distance-display" class="dist"></div>
+    </div>
+
+ <script>
     let map;
     let userMarker;
     let vs30Data;
