@@ -1,102 +1,91 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VS30 & Z1.0 定位查詢</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
-    <style>
-        body, html { height: 100%; margin: 0; padding: 0; font-family: Arial, sans-serif; }
-        #map { height: 100%; width: 100%; }
-        #info-panel {
-            position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
-            background: white; padding: 15px 20px; border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-align: center;
-            z-index: 1000; width: 80%; max-width: 280px;
-        }
-        .val { font-size: 22px; font-weight: bold; color: #d32f2f; margin: 4px 0; }
-        .dist { font-size: 13px; color: #777; margin-top: 8px; border-top: 1px solid #eee; padding-top: 6px; }
-    </style>
-</head>
-<body>
-    <div id="map"></div>
-    <div id="info-panel">
-        <div style="font-size: 14px; color: #444;">目前位置數值</div>
-        <div id="vs30-display" class="val">讀取中...</div>
-        <div id="z10-display" class="val"></div>
-        <div id="distance-display" class="dist"></div>
-    </div>
+<script>
+    let map;
+    let userMarker;
+    let vs30Data;
 
-    <script>
-        let map, userMarker, vs30Data;
+    function initMap() {
+        // 初始化地圖中心
+        map = L.map('map').setView([24.9605, 121.2239], 14);
 
-        function initMap() {
-            map = L.map('map').setView([24.96, 121.22], 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap'
-            }).addTo(map);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
 
-            startTracking();
+        // 先啟動定位
+        startTracking();
 
-            // 請確保檔案名稱與 GitHub 上完全一致（大小寫需相同）
-            fetch('Vs30_Z10_EG_SSHAC_integrate_grid2km.geojson')
-                .then(res => {
-                    if (!res.ok) throw new Error("找不到檔案");
-                    return res.json();
-                })
-                .then(data => { 
-                    vs30Data = data; 
-                    console.log("資料加載完成");
-                })
-                .catch(err => {
-                    document.getElementById("vs30-display").innerText = "資料加載失敗";
-                });
-        }
+        // 載入 GeoJSON 資料
+        fetch('Vs30_Z10_EG_SSHAC_integrate_grid2km.geojson')
+            .then(response => {
+                if (!response.ok) throw new Error("找不到檔案 (404)");
+                return response.json();
+            })
+            .then(data => {
+                vs30Data = data;
+                console.log("資料載入成功");
+            })
+            .catch(error => {
+                document.getElementById("vs30-display").innerText = "資料讀取失敗";
+                console.error(error);
+            });
+    }
 
-        function startTracking() {
-            if (navigator.geolocation) {
-                navigator.geolocation.watchPosition(pos => {
-                    const { latitude: lat, longitude: lng } = pos.coords;
+    function startTracking() {
+        if (navigator.geolocation) {
+            navigator.geolocation.watchPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+
                     if (!userMarker) {
-                        userMarker = L.circleMarker([lat, lng], { radius: 8, fillColor: "#4285F4", color: "#fff", weight: 2, fillOpacity: 1 }).addTo(map);
-                        map.setView([lat, lng], 15);
+                        userMarker = L.circleMarker([lat, lng], {
+                            radius: 8, fillColor: "#4285F4", color: "#fff", weight: 2, fillOpacity: 1
+                        }).addTo(map);
+                        map.setView([lat, lng], 15); 
                     } else {
                         userMarker.setLatLng([lat, lng]);
                     }
+
+                    // 呼叫計算函式
                     calculateValues(lng, lat);
-                }, () => {
-                    document.getElementById("vs30-display").innerText = "請開啟定位權限";
-                }, { enableHighAccuracy: true });
-            }
+                },
+                (error) => {
+                    document.getElementById("vs30-display").innerText = "定位失敗";
+                },
+                { enableHighAccuracy: true }
+            );
         }
+    }
 
-        function calculateValues(lng, lat) {
-            if (!vs30Data) return;
+    function calculateValues(lng, lat) {
+        // 如果資料還沒載入，直接跳出防止報錯
+        if (!vs30Data) return;
 
-            const userPoint = turf.point([lng, lat]);
-            // 修正處：確保 nearestFeature 定義在邏輯塊內
+        const userPoint = turf.point([lng, lat]);
+        
+        // 確保在 try-catch 中宣告，防止 Turf.js 出錯導致 ReferenceError
+        try {
             const nearestFeature = turf.nearestPoint(userPoint, vs30Data);
 
             if (nearestFeature && nearestFeature.properties) {
-                const vs = nearestFeature.properties.Vs30;
-                const z1 = nearestFeature.properties.Z10;
-                const dist = turf.distance(userPoint, nearestFeature, {units: 'kilometers'});
+                const vs30 = nearestFeature.properties.Vs30; 
+                const z10 = nearestFeature.properties.Z10; // 取得 Z1.0 數值
+                const distanceKm = turf.distance(userPoint, nearestFeature, {units: 'kilometers'});
 
-                if (dist > 1.5 || vs === -999) {
-                    document.getElementById("vs30-display").innerText = "此區域無資料";
+                if (distanceKm > 1 || vs30 === -999) {
+                    document.getElementById("vs30-display").innerText = "所在位置無資料";
                     document.getElementById("z10-display").innerText = "";
-                    document.getElementById("distance-display").innerText = "";
                 } else {
-                    // 以整數表示
-                    document.getElementById("vs30-display").innerText = "Vs30: " + Math.round(vs) + " m/s";
-                    document.getElementById("z10-display").innerText = "Z1.0: " + Math.round(z1) + " m";
-                    document.getElementById("distance-display").innerText = "距格點中心 " + Math.round(dist * 1000) + " 公尺";
+                    // 使用 Math.round() 顯示為整數
+                    document.getElementById("vs30-display").innerText = "Vs30: " + Math.round(vs30) + " m/s";
+                    document.getElementById("z10-display").innerText = "Z1.0: " + Math.round(z10) + " m";
+                    document.getElementById("distance-display").innerText = "距格點約 " + Math.round(distanceKm * 1000) + " 公尺";
                 }
             }
+        } catch (e) {
+            console.error("計算時發生錯誤:", e);
         }
-        window.onload = initMap;
-    </script>
-</body>
-</html>
+    }
+
+    window.onload = initMap;
+</script>
