@@ -29,10 +29,12 @@
         <div id="distance-display" class="dist"></div>
     </div>
 
+ <script src="grid-coverage.js"></script>
  <script>
     let map;
     let userMarker;
     let vs30Data;
+    let gridCoverage;
 
     function initMap() {
         // 初始化地圖中心
@@ -52,6 +54,7 @@
                 return response.json();
             })
             .then(data => {
+                gridCoverage = createGridCoverage(data);
                 vs30Data = data;
                 console.log("資料載入成功");
             })
@@ -92,6 +95,14 @@
         // 如果資料還沒載入，直接跳出防止報錯
         if (!vs30Data) return;
 
+        // 僅接受有效格網內的位置，不向海岸或缺值區域外推。
+        if (!gridCoverage.contains(lng, lat)) {
+            document.getElementById("vs30-display").innerText = "所在位置無資料";
+            document.getElementById("z10-display").innerText = "";
+            document.getElementById("distance-display").innerText = "";
+            return;
+        }
+
         const userPoint = turf.point([lng, lat]);
         
         // 確保在 try-catch 中宣告，防止 Turf.js 出錯導致 ReferenceError
@@ -103,13 +114,15 @@
                 const z10 = nearestFeature.properties.Z10; // 取得 Z1.0 數值
                 const distanceKm = turf.distance(userPoint, nearestFeature, {units: 'kilometers'});
 
-                if (distanceKm > 1 || vs30 === -999) {
+                if (vs30 === -999 || !Number.isFinite(vs30) || vs30 <= 0) {
                     document.getElementById("vs30-display").innerText = "所在位置無資料";
                     document.getElementById("z10-display").innerText = "";
                 } else {
+                    // 保留最近鄰格點的原始參數，不作空間插值。
                     // 使用 Math.round() 顯示為整數
                     document.getElementById("vs30-display").innerText = "Vs30: " + Math.round(vs30) + " m/s";
-                    document.getElementById("z10-display").innerText = "Z1.0: " + Math.round(z10) + " m";
+                    document.getElementById("z10-display").innerText = (Number.isFinite(z10) && z10 !== -999 && z10 >= 0)
+                        ? "Z1.0: " + Math.round(z10) + " m" : "Z1.0: 無資料";
                     document.getElementById("distance-display").innerText = "距格點約 " + Math.round(distanceKm * 1000) + " 公尺";
                 }
             }
